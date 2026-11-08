@@ -1,0 +1,9 @@
+.local
+.git
+**/.venv
+**/node_modules
+**/dist
+**/__pycache__
+**/.env
+backend/data
+docs/images

@@ -1,0 +1,21 @@
+{
+  "name": "annotation-collector",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "start": "electron .",
+    "install-runtime": "node install-runtime.cjs",
+    "check": "node --check main.cjs && node --check session.cjs && node --check preload.cjs && node --check renderer.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3"
+  },
+  "allowScripts": {
+    "electron@45.2.3": true
+  }
+}

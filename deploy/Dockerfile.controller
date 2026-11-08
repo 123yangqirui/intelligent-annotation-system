@@ -1,0 +1,4 @@
+FROM annotation-backend
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends docker.io && rm -rf /var/lib/apt/lists/*
+CMD ["uv", "run", "--no-sync", "celery", "-A", "app.tasks.celery_app", "worker", "-Q", "deployment", "--concurrency=1", "--loglevel=info"]

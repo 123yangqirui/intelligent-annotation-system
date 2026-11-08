@@ -1,0 +1,37 @@
+# Python / uv
+**/.venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+coverage.json
+*.log
+
+# Local configuration
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Frontend build artifacts
+node_modules/
+dist/
+
+# Local databases, credentials, imports, and training output
+.local/
+backend/data/
+model_services/**/.venv/
+
+# Local database files and model checkpoints
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.rdb
+*.aof
+*.pt
+*.pth
+*.safetensors

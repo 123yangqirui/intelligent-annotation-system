@@ -1,0 +1,4 @@
+FROM annotation-backend
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
+RUN uv pip install --python /workspace/backend/.venv/bin/python -r /workspace/model_services/training-requirements.txt
+CMD ["uv", "run", "--no-sync", "celery", "-A", "app.tasks.celery_app", "worker", "-Q", "training", "--concurrency=1", "--loglevel=info"]

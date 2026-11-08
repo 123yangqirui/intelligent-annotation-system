@@ -1,0 +1,87 @@
+name: annotation
+x-backend: &backend
+  image: annotation-backend
+  build: {context: .., dockerfile: backend/Dockerfile}
+  env_file: .env
+  environment: &environment
+    DATABASE_URL: postgresql+psycopg://annotation:${DATABASE_PASSWORD:?generate deploy/.env}@postgres:5432/annotation_db
+    REDIS_BROKER_URL: redis://redis-broker:6379/0
+    REDIS_CACHE_URL: redis://redis-cache:6379/0
+    MONGODB_URI: mongodb://annotation:${MONGO_PASSWORD:?generate deploy/.env}@mongo:27017/?authSource=admin
+    STORAGE_ROOT: ${PROJECT_ROOT}/backend/data
+    MODEL_DOCKER_NETWORK: annotation_models
+    MODEL_ROOT: ${PROJECT_ROOT}
+  volumes: ["${PROJECT_ROOT}/backend/data:${PROJECT_ROOT}/backend/data"]
+  depends_on:
+    postgres: {condition: service_healthy}
+    redis-broker: {condition: service_started}
+    redis-cache: {condition: service_started}
+    mongo: {condition: service_started}
+  networks: [default, models]
+services:
+  postgres:
+    image: postgres:17
+    environment: {POSTGRES_USER: annotation, POSTGRES_PASSWORD: "${DATABASE_PASSWORD}", POSTGRES_DB: annotation_db}
+    volumes: ["postgres-data:/var/lib/postgresql/data"]
+    healthcheck: {test: [CMD-SHELL, "pg_isready -U annotation -d annotation_db"], interval: 5s, timeout: 3s, retries: 20}
+  redis-broker:
+    image: redis:8-alpine
+    command: [redis-server, --appendonly, "yes", --maxmemory-policy, noeviction]
+    volumes: ["redis-broker:/data"]
+  redis-cache:
+    image: redis:8-alpine
+    command: [redis-server, --maxmemory, 256mb, --maxmemory-policy, allkeys-lru]
+  mongo:
+    image: mongo:8
+    environment: {MONGO_INITDB_ROOT_USERNAME: annotation, MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD}"}
+    volumes: ["mongo-data:/data/db"]
+  migrate:
+    <<: *backend
+    command: [uv, run, --no-sync, alembic, upgrade, head]
+  api:
+    <<: *backend
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck: {test: [CMD, uv, run, --no-sync, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/live')"], interval: 10s, timeout: 5s, retries: 10}
+  worker:
+    <<: *backend
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    command: [uv, run, --no-sync, celery, -A, app.tasks.celery_app, worker, -Q, annotation, --concurrency=2, --loglevel=info]
+  dispatcher:
+    <<: *backend
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    command: [uv, run, --no-sync, python, -m, app.cli, dispatch]
+  agent-worker:
+    <<: *backend
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    command: [uv, run, --no-sync, celery, -A, app.tasks.celery_app, worker, -Q, agent, --pool=threads, --concurrency=2, --loglevel=info]
+  web:
+    build: {context: .., dockerfile: frontend/Dockerfile}
+    ports: ["127.0.0.1:8080:80"]
+    depends_on:
+      api: {condition: service_healthy}
+  deployment-controller:
+    <<: *backend
+    profiles: [deploy]
+    image: annotation-controller
+    build: {context: .., dockerfile: deploy/Dockerfile.controller}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "${PROJECT_ROOT}/model_services:${PROJECT_ROOT}/model_services:ro"
+      - "${PROJECT_ROOT}/backend/data:${PROJECT_ROOT}/backend/data"
+    command: [uv, run, --no-sync, celery, -A, app.tasks.celery_app, worker, -Q, deployment, --concurrency=1, --loglevel=info]
+  training-worker:
+    <<: *backend
+    profiles: [training]
+    image: annotation-training
+    build: {context: .., dockerfile: deploy/Dockerfile.training}
+    command: [uv, run, --no-sync, celery, -A, app.tasks.celery_app, worker, -Q, training, --concurrency=1, --loglevel=info]
+volumes:
+  postgres-data:
+  mongo-data:
+  redis-broker:
+networks:
+  models: {name: annotation_models}

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'none'"
+    />
+    <title>智能标注 · 资料采集客户端</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header><strong>标 · 智能标注</strong><span>资料采集客户端</span></header>
+    <main>
+      <p class="eyebrow">DATA COLLECTION</p>
+      <h1>将资料送入标注工作空间</h1>
+      <p class="muted">
+        从指定地址提取文本或下载图片，保留来源并提交后台导入。
+      </p>
+      <section>
+        <h2>1. 连接标注服务</h2>
+        <form id="login">
+          <label
+            >服务地址<input
+              id="server"
+              value="http://127.0.0.1:8000"
+              type="url"
+              required
+          /></label>
+          <div class="grid">
+            <label
+              >用户名<input
+                id="username"
+                autocomplete="username"
+                required /></label
+            ><label
+              >密码<input
+                id="password"
+                type="password"
+                autocomplete="current-password"
+                required
+            /></label>
+          </div>
+          <button>连接并登录</button
+          ><button id="logout" type="button" disabled>退出登录</button>
+          <p id="account" class="muted"></p>
+        </form>
+      </section>
+      <section>
+        <h2>2. 采集并导入</h2>
+        <form id="collect">
+          <label
+            >目标项目<select id="project" required>
+              <option value="">先登录以读取项目</option>
+            </select></label
+          ><label
+            >资料地址<input
+              id="url"
+              type="url"
+              required
+              placeholder="公开网页或图片的完整地址" /></label
+          ><label
+            >采集类型<select id="kind">
+              <option value="text">网页文本</option>
+              <option value="image">图片文件</option>
+            </select></label
+          ><button id="collect-button" disabled>采集并导入</button>
+        </form>
+      </section>
+      <p id="status" role="status"></p>
+      <pre id="result"></pre>
+      <p class="muted small">
+        采集成功后，请在 Web
+        标注系统完成标签配置、标注和审核。客户端登录凭证仅保存在当前进程内存中。
+      </p>
+    </main>
+    <script src="renderer.js"></script>
+  </body>
+</html>
